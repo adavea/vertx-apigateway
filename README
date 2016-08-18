@@ -1,0 +1,42 @@
+What is this?
+
+This is a simple API Gateway implementation, intended to give you a single (actually, horizantally scalable if you use a load-balancer) endpoint for all your HTTP service requests.  
+
+Requirements
+
+Java 8
+Gradle
+
+Why should I use this?
+
+Essentially, you would want to use this if you don't want to set up traditional service discovery mechanisms, and so that your front end code can access your microservices with minimal work and minimal code maintenance.
+
+Let's say you have the following setup:
+-A web app on your local machine
+-A server (s1) with 2 microservices, /companies and /employees
+-A server (s2) with 1 microservice, /companies (say we query this a lot so we needed to throw up a second server)
+
+If you want to query /companies from your web app, you need to 1) know which servers all the web services live on and 2) come up with a good selection method for querying said services, so you don't end up pegging one service instance while the other one sits idle, etc.  The API gateway implemented here takes care of #1 for you by exposing a single endpoint for all web service queries, so you don't need to maintain a list anywhere, and it takes care of #2 for you by using a round-robin strategy (this is configurable) to give each of your registered web services about the same load, regardless of whether they're on the same machine or elsewhere in your cluster.
+
+How does it work?
+
+1)  All verticles extending AbstractServiceVerticle will automatically try to cluster via hazelcast
+2)  Once they are connected to the cluster, they call addService(), to add to the internal list of registerable services, then startAutoRegistry(), to start a periodic timer that will register all the services by adding them to an in an in-cluster-memory map (managed by hazelcast) 
+3)  The api gateway, on receiving a request, will look in the map to see which services are available that can handle the request
+4)  If the api gateway finds a service that can handle the request, it will query the web service on whatever server/port it is sitting on via a simple HTTP call
+
+How can I play around with it?
+
+Basically, just change into the directory where build.gradle lives and run "gradle run"
+
+I included a non-gateway sample service in the examples folder as well.  If you want, you can alter build.gradle so that it will treat the sample service class as the main class, then run "gradle run" to throw up both an api gateway and 3 sample services (3 instances of the same service to be precise).  Once you've done that you should be able to open a web browser and query http://localhost:8084/sampleService1 to get a response from the sample service that is actually sitting at http://localhost:8089/sampleService1.
+
+How can I use it?
+
+Be sure to check out what APIGateway.java is doing (APIGateway considers itself a service), or even better look in the examples folder at the microservices created there.  Basically they do this:
+
+1) Create a verticle-based microservice that extends AbstractServiceVerticle  
+2) Call addService() then startAutoRegistry() from your verticle once it is ready to serve up your service
+3) Query the api gateway as if it were the service you just threw up.  e.g. if your api gateway is at http://api.finaldave.com and your web service is serving up http://192.168.0.488/companies, then query http://api.finaldave.com/companies from your front end
+
+Note that by default, 2 instances of the apigateway verticle will be served up.  This is to help utilize all the cores on the apigateway machine.

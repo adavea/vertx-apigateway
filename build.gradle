@@ -1,0 +1,21 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+apply plugin: 'java'
+apply plugin: 'application'
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile group: 'commons-collections', name: 'commons-collections', version: '3.2.2'
+    compile 'io.vertx:vertx-core:3.2.1'
+    compile 'io.vertx:vertx-web:3.2.1'
+    compile 'io.vertx:vertx-hazelcast:3.3.2'
+}
+
+mainClassName = 'com.finaldave.apigateway.Launcher'
+//mainClassName = 'com.finaldave.apigateway.example.SampleService1Verticle'
+
